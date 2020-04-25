@@ -1,5 +1,6 @@
 
 import serial
+import serial.tools.list_ports
 import time
 import threading
 import math
@@ -7,9 +8,7 @@ import sys
 import traceback
 
 def convertArduinoHaf(val):
-
     flow = 50.0 * (((float(val) / 16384.0) - 0.1) / 0.8)
-
     return flow
 
 
@@ -25,7 +24,6 @@ def convertNpa700B02WD(val):
 
 def convertNpa700B02WDFlow(val):
     #return convertNpa700B02WD(val) * 12.0
-
     press = float(val-8192) * ( 2.0 / 8191.0 )
 
     B = 62.0
@@ -59,17 +57,18 @@ def convertZero(val):
 
 class AmbuControl(object):
 
-    def __init__(self, dev, convert=[], adjust=[]):
+    def __init__(self, convert=[], adjust=[]):
 
-        self._ser = serial.Serial(dev, 57600, timeout=1.0)
-
+        self._ser = None #serial.Serial(dev, 57600, timeout=1.0)
+        self._set_serial = False
+        self._ser_ports = serial.tools.list_ports.comports()
         self._convert = convert
-        self._runEn = True
+        self._runEn = False
         self._callBack = self._debugCallBack
         self._file = None
         self._last = None
         self._adjust = adjust
-        self._period = 0
+        self._period = .001
         self._onTime = 0
         self._startThold = 0
         self._state = 0
@@ -98,6 +97,11 @@ class AmbuControl(object):
             if cf is not None:
                 self._data['data'].append([])
                 self._data['raw'].append([])
+
+    def set_serial(self, portIndex):
+        device = self._ser_ports[portIndex]
+        self._ser = serial.Serial(device.device, 57600, timeout=1.0)
+        self._set_serial = True
 
     def openLog(self, fName):
         self._file = open(fName,'a')

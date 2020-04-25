@@ -25,6 +25,8 @@ class ControlGui(QWidget):
 
     updateCount = pyqtSignal(str)
     updateRate  = pyqtSignal(str)
+    updateRunButton = pyqtSignal(str)
+    updateSetSerial = pyqtSignal(bool)
 
     def __init__(self, *, ambu, refPlot=False, parent=None):
         super(ControlGui, self).__init__(parent)
@@ -75,6 +77,7 @@ class ControlGui(QWidget):
         rs.addItem("Relay Off")
         rs.addItem("Relay On")
         rs.addItem("Relay Cycle")
+        rs.setEnabled(False)
         rs.setCurrentIndex(self.ambu.state)
         rs.currentIndexChanged.connect(self.setState)
         fl.addRow('State:',rs)
@@ -82,17 +85,23 @@ class ControlGui(QWidget):
         cycles = QLineEdit()
         cycles.setText("0")
         cycles.setReadOnly(True)
+        cycles.setEnabled(False)
         self.updateCount.connect(cycles.setText)
+        self.updateSetSerial.connect(cycles.setEnabled)
         fl.addRow('Breaths:',cycles)
 
         sampRate = QLineEdit()
         sampRate.setText("0")
         sampRate.setReadOnly(True)
+        sampRate.setEnabled(ambu._set_serial)
+        self.updateSetSerial.connect(sampRate.setEnabled)
         self.updateRate.connect(sampRate.setText)
         fl.addRow('Sample Rate:',sampRate)
 
         pb = QPushButton('Clear Count')
+        pb.setEnabled(False)
         pb.clicked.connect(self.clrCount)
+        self.updateSetSerial.connect(pb.setEnabled)
         vl.addWidget(pb)
 
         # Period Control
@@ -144,6 +153,30 @@ class ControlGui(QWidget):
         self.plotCycles.setText("10")
         fl.addRow('Plot Breaths:',self.plotCycles)
 
+        # Serial Selector
+        gb = QGroupBox('Serial/COM')
+        hl.addWidget(gb)
+        vl = QVBoxLayout()
+        gb.setLayout(vl)
+        fl = QFormLayout()
+        fl.setRowWrapPolicy(QFormLayout.DontWrapRows)
+        fl.setFormAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        fl.setLabelAlignment(Qt.AlignRight)
+        vl.addLayout(fl)
+        sp = QComboBox()  # serial port
+        for p in self.ambu._ser_ports:
+            sp.addItem(str(p.device) + '-' + p.manufacturer )
+        sp.setCurrentIndex(-1)
+        sp.currentIndexChanged.connect(self.setSerial)
+        fl.addRow('COM:',sp)
+
+        sb = QPushButton("Start")
+        sb.setEnabled(False)
+        sb.clicked.connect(self.toggleStreaming)
+        self.updateSetSerial.connect(sb.setEnabled)
+        self.updateRunButton.connect(sb.setText)
+        vl.addWidget(sb)
+
         # Log File
         gb = QGroupBox('Log File')
         hl.addWidget(gb)
@@ -173,6 +206,14 @@ class ControlGui(QWidget):
 
 
     @pyqtSlot()
+    def toggleStreaming(self):
+        self.ambu._runEn = not self.ambu._runEn
+        if self.ambu._runEn == True:
+            self.updateRunButton.emit("Stop")
+        else:
+            self.updateRunButton.emit("Start")
+
+    @pyqtSlot()
     def setRate(self):
         try:
             self.ambu.cycleRate = float(self.rp.text())
@@ -192,6 +233,20 @@ class ControlGui(QWidget):
             self.ambu.startThold = float(self.st.text())
         except Exception as e:
             print(f"Got GUI value error {e}")
+
+    @pyqtSlot(int)
+    def setSerial(self, value):
+        print("set serial COM = " + self.ambu._ser_ports[value].device)
+        try:
+            self.ambu.set_serial(value)
+            self.updateSetSerial.emit(True)
+        except Exception as e:
+            print(f"Got GUI error trying to set COM port {e}")
+
+    @pyqtSlot(str)
+    def setRunState(self, astate):
+        print(f"Set run state to {astate}")
+        
 
     @pyqtSlot(int)
     def setState(self, value):
@@ -263,7 +318,7 @@ class ControlGui(QWidget):
             self.plot.axes[2].cla()
             xa = np.array(xAxis)
 
-            self.plot.axes[0].plot(xa,np.array(data[0]),color="yellow",linewidth=2.0)
+            self.plot.axes[0].plot(xa,np.array(data[0]),color="red",linewidth=2.0)
             self.plot.axes[1].plot(xa,np.array(data[1]),color="green",linewidth=2.0)
             self.plot.axes[2].plot(xa,np.array(data[2]),color="blue",linewidth=2.0)
 

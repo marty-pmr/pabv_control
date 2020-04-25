@@ -21,10 +21,11 @@ adjust[1] = (8192-8112)
 #adjust[1] = (8192-8022)
 #adjust[1] = (8192-7612)
 
-if sys.platform == 'linux':
-    ambu = ambu_control.AmbuControl("/dev/ttyACM0",convert=convert,adjust=adjust)
-else:
-    ambu = ambu_control.AmbuControl("COM4",convert=convert,adjust=adjust)
+#if sys.platform == 'linux':
+#    ambu = ambu_control.AmbuControl("/dev/ttyACM0",convert=convert,adjust=adjust)
+#else:
+#    ambu = ambu_control.AmbuControl("COM4",convert=convert,adjust=adjust)
+ambu = ambu_control.AmbuControl(convert=convert,adjust=adjust)
 
 appTop = QApplication(sys.argv)
 
