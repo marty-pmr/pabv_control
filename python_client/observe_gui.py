@@ -36,10 +36,6 @@ class ControlGui(QWidget):
         self.ambu = ambu
         self.ambu.setCallBack(self.plotData)
 
-        # A button will toggle this to accept stream data once hooked up
-        self.run_observer = False
-        # The logging 
-
         top = QVBoxLayout()
         self.setLayout(top)
 

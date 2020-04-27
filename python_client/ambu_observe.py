@@ -26,7 +26,7 @@ class AmbuObserve(object):
         print("AmBu init()")
 
     def _initData(self):
-        self._data = numpy.zeros((1000,6))
+        self._data = numpy.zeros((1000,5))
         # Coule use NaN np.empty(shape), A[:]=np.NaN
 
     def set_serial(self, portIndex):
@@ -53,42 +53,42 @@ class AmbuObserve(object):
         self._thread.join()
 
     def _handleSerial(self):
-        while self._runEn:
-            try:
-                raw = self._ser.readline()
-                line = raw.decode('UTF-8')
-                print(line)
-                data = line.rstrip().split(' ')
-                ts = time.time()
+        while True: # HELP - need to close this when the AmBu object is closed somehow?
+            if self._runEn:
+                try:
+                    raw = self._ser.readline()
+                    line = raw.decode('UTF-8')
+                    data = line.rstrip().split(' ')
+                    ts = time.time()
 
-                if data[0] == 'S':
-                    # Status data "S Millis RR IH TH"
-                    self._RR = data[2]/1000.0
-                    self._IH = data[3]/1000.0
+                    if data[0] == 'S':
+                        # Status data "S Millis RR IH TH"
+                        self._RR = int(data[2])/1000.0
+                        self._IH = int(data[3])/1000.0
 
-                if data[0] == 'P' and len(data) >= (len(self._convert)+6):
-                    # Format = "P millis cycle relayState GaugeP FlowP"
-                    onTime = float(data[1])/1000.0
-                    currentCycle = int(data[2])
-                    relayState = bool(data[3])
-                    gaugePressVal = int(data[4])
-                    flowPressVal  = int(data[5])
-                    gaugePress = convertDlcL20dD4(gaugePressVal)
-                    flowVolume = convertNpa700B02WDFlow(flowPressVal)
+                    if data[0] == 'P':
+                        # Format = "P millis cycle relayState GaugeP FlowP"
+                        onTime = float(data[1])/1000.0
+                        currentCycle = int(data[2])
+                        relayState = bool(data[3])
+                        gaugePressVal = int(data[4])
+                        flowPressVal  = int(data[5])
+                        gaugePress = convertDlcL20dD4(gaugePressVal)
+                        flowVolume = convertNpa700B02WDFlow(flowPressVal)
 
+                        # Shift data in numpy array by one
+                        self._data[1:,:] = self._data[:-1,:]
+                        # And append new data to it
+                        self._data[0,:] = (onTime, currentCycle, relayState, gaugePress, flowVolume)
 
-                    # Shift data in numpy array by one
-                    self._data[1:,:] = self._data[:-1,:]
-                    self._data[0,:] = (onTime, currentCycle, relayState, gaugePress, flowVolume)
+                        if self._file is not None:
+                            #self._file.write(f'{ts}, {count}, ' + ', '.join(map(str,convValues)))
+                            #self._file.write('\n')
+                            pass
 
-                    if self._file is not None:
-                        #self._file.write(f'{ts}, {count}, ' + ', '.join(map(str,convValues)))
-                        #self._file.write('\n')
-                        pass
-
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Got error {e}")
+                except Exception as e:
+                    traceback.print_exc()
+                    print(f"Got error {e}")
 
 # ---ooo000OOOooo--- ---ooo000OOOooo--- ---ooo000OOOooo--- ---ooo000OOOooo--- ---ooo000OOOooo---
 def convertArduinoHaf(val):
