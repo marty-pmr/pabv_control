@@ -5,12 +5,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore    import *
 from PyQt5.QtGui     import *
 
-import control_gui
-import ambu_control
+import observe_gui
+import ambu_observe
 
 convert = [None]*2
-convert[0] = ambu_control.convertDlcL20dD4
-convert[1] = ambu_control.convertNpa700B02WDFlow
+convert[0] = ambu_observe.convertDlcL20dD4
+convert[1] = ambu_observe.convertNpa700B02WDFlow
 
 # Marty with dual = 8090
 # Marty with cal = 8099
@@ -21,15 +21,11 @@ adjust[1] = (8192-8112)
 #adjust[1] = (8192-8022)
 #adjust[1] = (8192-7612)
 
-#if sys.platform == 'linux':
-#    ambu = ambu_control.AmbuControl("/dev/ttyACM0",convert=convert,adjust=adjust)
-#else:
-#    ambu = ambu_control.AmbuControl("COM4",convert=convert,adjust=adjust)
-ambu = ambu_control.AmbuControl(convert=convert,adjust=adjust)
+ambu = ambu_observe.AmbuObserve()
 
 appTop = QApplication(sys.argv)
 
-guiTop = control_gui.ControlGui(ambu=ambu)
+guiTop = observe_gui.ControlGui(ambu=ambu)
 guiTop.setWindowTitle("PABV Control")
 guiTop.show()
 
